@@ -2,8 +2,7 @@ package fr.sebx.vision.consumer;
 
 import javax.swing.JLabel;
 
-import org.bytedeco.javacv.Frame;
-
+import fr.sebx.vision.core.CapturedImage;
 import fr.sebx.vision.utils.Resolution;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,10 +17,10 @@ public class ResolutionDisplay implements FrameConsumer {
 	}
 
 	@Override
-	public void newFrame(Frame frame) {
+	public void newImage(CapturedImage frame) {
 		
-		int width = frame.imageWidth;
-		int height = frame.imageHeight;
+		int width = frame.getImage().getWidth();
+		int height = frame.getImage().getHeight();
 		
 		Resolution foundResolution = null;
 		

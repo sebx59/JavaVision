@@ -8,7 +8,7 @@
 	</appender>
 
 	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
-		<file>d:\\video.log</file>
+		<file>d:\\javavision\\vision.log</file>
 		<append>true</append>		
 		<encoder>
 			<pattern>%d [%thread] %-5level %logger{15} - %msg %n</pattern>
@@ -17,7 +17,7 @@
 
 	<root level="INFO">
 		<appender-ref ref="STDOUT" />
-<!-- 		<appender-ref ref="FILE" /> -->
+ 		<appender-ref ref="FILE" />
 	</root>
 
 	<logger name="fr.sebx" level="INFO" />

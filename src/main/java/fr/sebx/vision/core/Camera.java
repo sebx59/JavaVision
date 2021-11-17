@@ -1,30 +1,39 @@
 package fr.sebx.vision.core;
 
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.SwingWorker;
 
+import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacv.FFmpegFrameFilter;
 import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.FrameFilter;
 import org.bytedeco.javacv.FrameGrabber;
+import org.bytedeco.javacv.Java2DFrameConverter;
 import org.bytedeco.javacv.VideoInputFrameGrabber;
 
 import fr.sebx.vision.consumer.FrameConsumer;
 import fr.sebx.vision.exception.CameraException;
 import fr.sebx.vision.utils.Resolution;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class Camera extends SwingWorker<Void, Frame> {
-	
-	@Getter @Setter
-	protected int fps = 25;
-    
+public class Camera extends SwingWorker<Void, CapturedImage> {
+	    
     private FrameGrabber grabber;
+    private FrameFilter filter = null;
+
+	private final Java2DFrameConverter converter;
         
     private List<FrameConsumer> consumers;
+    
+    private boolean useFilter = true;
+    
+    private static final String ffmpegString = "yadif=mode=0:parity=-1:deint=0,format=bgr24";
+
+    private static final int PIXEL_FORMAT = avutil.AV_PIX_FMT_BGR24;
             
 	public Camera(int webcamDeviceIndex, Resolution resolution) throws CameraException {
 		
@@ -34,7 +43,10 @@ public class Camera extends SwingWorker<Void, Frame> {
 			grabber = VideoInputFrameGrabber.createDefault(webcamDeviceIndex);
 			grabber.setImageHeight(resolution.getHeight());
 			grabber.setImageWidth(resolution.getWidth());
+			grabber.setPixelFormat(PIXEL_FORMAT);
 			
+			converter = new Java2DFrameConverter();	
+						
 		} catch (Exception e) {
 			
 			throw new CameraException("Error during camera initialization : " + e.getMessage(), e);
@@ -46,8 +58,7 @@ public class Camera extends SwingWorker<Void, Frame> {
 		
 		log.info("Camera is starting");
 		                
-        try {
-        	
+        try {        	
 			grabber.start();
 			log.info("Camera started");
 			
@@ -67,41 +78,66 @@ public class Camera extends SwingWorker<Void, Frame> {
 			} catch (Exception e) {
 
 				log.error("Error while image grabbing : {}", e.getMessage(), e);
+				continue;
 			}
 
-			if(capturedFrame != null) {
-			
-				publish(capturedFrame);					
+			if(useFilter && filter == null) {
+				
+				filter = new FFmpegFrameFilter(ffmpegString, capturedFrame.imageWidth, capturedFrame.imageHeight);
+				filter.setPixelFormat(PIXEL_FORMAT);
+				filter.start();
 			}
-		}			
+			
+			if(useFilter) {
+				
+				filter.push(capturedFrame);
+				capturedFrame = filter.pull();
+			}	
+			
+//			We convert the frame to BufferedImage here so many consumers will not have to do it
+			BufferedImage image = converter.convert(capturedFrame);
+			
+			if(image == null) {
+				log.debug("A problem occured while converting frame to BufferedImage");
+				continue;
+			}
+			
+			CapturedImage capturedImage = new CapturedImage(capturedFrame, image);
+
+			publish(capturedImage);	
+		}
         
         try {
 			grabber.close();
 			grabber.release();
 			
+			if(filter != null) {
+				
+				filter.close();
+			}
+			
 		} catch (Exception e) {
 			
-			log.error("Erreur during camera shutdown : {}", e.getMessage(), e);
+			log.error("Error during camera shutdown : {}", e.getMessage(), e);
 		}
         
         return null;
 	}
 
 	@Override
-	protected void process(List<Frame> chunks) {
+	protected void process(List<CapturedImage> chunks) {
 		
 		if(chunks.size() > 1) {
 			log.debug("Skipping {} frames", chunks.size() - 1);
 		}
 
-		Frame frame = chunks.get(chunks.size()-1);
+		CapturedImage frame = chunks.get(chunks.size()-1);
 		
-//		On propage la frame
-		consumers.stream().filter(consumer -> !consumer.shouldBeDisposed()).forEach(consumer -> consumer.newFrame(frame));		
+//		propagate the frame across consumers		
+		consumers.stream().filter(consumer -> !consumer.shouldBeDisposed()).forEach(consumer -> consumer.newImage(frame));		
 	}
 	
-	public boolean addConsumer(FrameConsumer e) {
-		return consumers.add(e);
-	}
+	public boolean addConsumer(FrameConsumer e) { return consumers.add(e); }
 
+	public void setUseFilter(boolean useFilter) { this.useFilter = useFilter; }
 }

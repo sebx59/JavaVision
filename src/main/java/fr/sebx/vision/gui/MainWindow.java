@@ -11,6 +11,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 
 import javax.imageio.ImageIO;
 import javax.swing.Box;
@@ -35,6 +36,7 @@ import fr.sebx.vision.consumer.MotionDetector;
 import fr.sebx.vision.consumer.ResolutionDisplay;
 import fr.sebx.vision.core.Camera;
 import fr.sebx.vision.exception.CameraException;
+import fr.sebx.vision.handler.ImageRecorder;
 import fr.sebx.vision.handler.MotionDetectedIconBlinking;
 import fr.sebx.vision.utils.CameraUtils;
 import fr.sebx.vision.utils.Resolution;
@@ -75,6 +77,7 @@ public class MainWindow extends JFrame {
 	private JSlider motionDetectionDelaySlider;
 	
 	private JCheckBox chckbxDisplayCamera;
+	JCheckBox chckbxUseDeinterlaceFiltering;
 	
 	public static void main(String[] args) {
 		
@@ -126,17 +129,17 @@ public class MainWindow extends JFrame {
 		
 		btnExit = new JButton("Exit");
 		
-		btnExit.setBounds(685, 252, 89, 23);
+		btnExit.setBounds(685, 267, 89, 23);
 		contentPane.add(btnExit);
 		
 		JPanel cameraSetupPanel = new JPanel();
 		cameraSetupPanel.setBorder(new TitledBorder(null, "Camera Setup", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		cameraSetupPanel.setBounds(336, 10, 216, 165);
+		cameraSetupPanel.setBounds(336, 10, 216, 190);
 		contentPane.add(cameraSetupPanel);
 		cameraSetupPanel.setLayout(null);
 		
 		btnStartCamera = new JButton("Start Camera");
-		btnStartCamera.setBounds(10, 131, 97, 23);
+		btnStartCamera.setBounds(10, 156, 97, 23);
 		cameraSetupPanel.add(btnStartCamera);
 		
 		cBoxCamSelection = new JComboBox<String>();
@@ -154,6 +157,11 @@ public class MainWindow extends JFrame {
 		cBoxResolutionSelection = new JComboBox<>();
 		cBoxResolutionSelection.setBounds(10, 95, 196, 23);
 		cameraSetupPanel.add(cBoxResolutionSelection);
+		
+		chckbxUseDeinterlaceFiltering = new JCheckBox("Use Deinterlacing filter");
+		chckbxUseDeinterlaceFiltering.setSelected(true);
+		chckbxUseDeinterlaceFiltering.setBounds(10, 126, 134, 23);
+		cameraSetupPanel.add(chckbxUseDeinterlaceFiltering);
 		
 		JPanel motionDetectionPanel = new JPanel();
 		motionDetectionPanel.setLayout(null);
@@ -227,6 +235,8 @@ public class MainWindow extends JFrame {
 	}
 	
 	protected void init() {
+		
+		canvas.createBufferStrategy(2);
 
 		try {
 			
@@ -330,6 +340,7 @@ public class MainWindow extends JFrame {
 			}
 			
 			ResolutionDisplay resDisplay = new ResolutionDisplay(lblDisplayResolutionData);
+			camera.setUseFilter(chckbxUseDeinterlaceFiltering.isSelected());
 			camera.addConsumer(resDisplay);
 			
 			canvasDisplay = new CanvasDisplay(canvas, lblDisplayRateData);
@@ -341,6 +352,7 @@ public class MainWindow extends JFrame {
 			btnStartMotiondetection.setEnabled(true);
 			chckbxDisplayCamera.setEnabled(true);
 			chckbxDisplayCamera.addChangeListener(new DisplayCameraChangeListener());
+			chckbxUseDeinterlaceFiltering.addChangeListener(new UseDeinterlacFilterChangeListener());
 		}
 	}
 	
@@ -352,6 +364,19 @@ public class MainWindow extends JFrame {
 			JCheckBox component = (JCheckBox)e.getSource();
 			canvasDisplay.setEnabled(component.isSelected());
 			
+		}		
+	}
+	
+	private class UseDeinterlacFilterChangeListener implements ChangeListener {
+
+		@Override
+		public void stateChanged(ChangeEvent e) {
+			
+			JCheckBox component = (JCheckBox)e.getSource();
+			if(camera != null) {
+				
+				camera.setUseFilter(component.isSelected());
+			}			
 		}		
 	}
 	
@@ -370,6 +395,11 @@ public class MainWindow extends JFrame {
 			motionDetectionActiveIcon.setVisible(true);
 			
 			btnStartMotiondetection.setEnabled(false);
+			
+			ImageRecorder recorder = new ImageRecorder();
+			recorder.setImageSavePath(Paths.get("d:/javavision"));
+			
+			motionDetector.addEventHandler(recorder);
 		}
 	}
 }

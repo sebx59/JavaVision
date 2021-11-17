@@ -13,6 +13,7 @@ import org.bytedeco.opencv.opencv_core.CvMemStorage;
 import org.bytedeco.opencv.opencv_core.CvSeq;
 import org.bytedeco.opencv.opencv_core.IplImage;
 
+import fr.sebx.vision.core.CapturedImage;
 import fr.sebx.vision.core.MotionDetectedEvent;
 import fr.sebx.vision.handler.MotionDetectedEventHandler;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +41,7 @@ public class MotionDetector implements FrameConsumer {
 	}
 
 	@Override
-	public void newFrame(Frame frame) {	
+	public void newImage(CapturedImage frame) {	
 		
 		if(System.currentTimeMillis() < nextAllowedDetectionTimestamp) {
 			
@@ -49,7 +50,7 @@ public class MotionDetector implements FrameConsumer {
 		}
 		
 		log.debug("Frame received");
-		IplImage frameImage = converter.convert(frame);
+		IplImage frameImage = converter.convert(frame.getFrame());
 		log.debug("Frame converted");
 		
 		opencv_core.cvClearMemStorage(storage);
@@ -80,7 +81,7 @@ public class MotionDetector implements FrameConsumer {
             if (!contour.isNull()) {
 
 //            	We detected a motion
-            	notifyHandlers();
+            	notifyHandlers(frame);
             }
             
     		previousImage.deallocate();
@@ -99,9 +100,9 @@ public class MotionDetector implements FrameConsumer {
     	nextAllowedDetectionTimestamp = System.currentTimeMillis() + delayBetweenDetection;
 	}
 	
-	private void notifyHandlers() {
+	private void notifyHandlers(CapturedImage frame) {
 		
-		MotionDetectedEvent event = new MotionDetectedEvent();
+		MotionDetectedEvent event = new MotionDetectedEvent(frame);
 		
 		eventHandlers.forEach(handler -> handler.handleEvent(event));
 	}
