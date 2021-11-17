@@ -38,6 +38,7 @@ import fr.sebx.vision.core.Camera;
 import fr.sebx.vision.exception.CameraException;
 import fr.sebx.vision.handler.ImageRecorder;
 import fr.sebx.vision.handler.MotionDetectedIconBlinking;
+import fr.sebx.vision.handler.VideoRecorder;
 import fr.sebx.vision.utils.CameraUtils;
 import fr.sebx.vision.utils.Resolution;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +70,7 @@ public class MainWindow extends JFrame {
 	private JLabel motionDetectionDelay;
 	private JLabel motionDetectionActiveIcon;
 	private JLabel motionDetectedIcon;
+	private JLabel recordingIcon;
 	private JLabel lblDisplayResolutionData;
 	
 	private JComboBox<String> cBoxCamSelection;
@@ -77,7 +79,7 @@ public class MainWindow extends JFrame {
 	private JSlider motionDetectionDelaySlider;
 	
 	private JCheckBox chckbxDisplayCamera;
-	JCheckBox chckbxUseDeinterlaceFiltering;
+	private JCheckBox chckbxUseDeinterlaceFiltering;
 	
 	public static void main(String[] args) {
 		
@@ -175,7 +177,7 @@ public class MainWindow extends JFrame {
 		motionDetectionPanel.add(btnStartMotiondetection);
 		
 		motionDetectionDelaySlider = new JSlider();
-		motionDetectionDelaySlider.setValue(500);
+		motionDetectionDelaySlider.setValue(2000);
 		motionDetectionDelaySlider.setSnapToTicks(true);
 		motionDetectionDelaySlider.setPaintTicks(true);
 		motionDetectionDelaySlider.setMajorTickSpacing(500);
@@ -193,16 +195,22 @@ public class MainWindow extends JFrame {
 		motionDetectionPanel.add(motionDetectionDelay);		
 				
 		motionDetectionActiveIcon = new JLabel();
-		motionDetectionActiveIcon.setBounds(250, 258, 32, 32);
+		motionDetectionActiveIcon.setBounds(223, 258, 32, 32);
 		motionDetectionActiveIcon.setVisible(false);
 		
 		contentPane.add(motionDetectionActiveIcon);
 		
 		motionDetectedIcon = new JLabel();
-		motionDetectedIcon.setBounds(287, 258, 32, 32);
+		motionDetectedIcon.setBounds(260, 258, 32, 32);
 		motionDetectedIcon.setVisible(false);
 		
 		contentPane.add(motionDetectedIcon);
+		
+		recordingIcon = new JLabel();
+		recordingIcon.setBounds(297, 258, 32, 32);
+		recordingIcon.setVisible(false);
+		
+		contentPane.add(recordingIcon);
 		
 		Box horizontalBox = Box.createHorizontalBox();
 		horizontalBox.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
@@ -266,9 +274,13 @@ public class MainWindow extends JFrame {
 		InputStream motionDetectionActiveImageInputStream = ClassLoader.class.getResourceAsStream("/img/eye.png");
 		Image motionDetectionActiveImage = null;
 
+		InputStream recordingImageInputStream = ClassLoader.class.getResourceAsStream("/img/rec.png");
+		Image recordingImage = null;
+
 		try {
 			motionDetectedImage = ImageIO.read(motionDetectedImageInputStream);
 			motionDetectionActiveImage = ImageIO.read(motionDetectionActiveImageInputStream);
+			recordingImage = ImageIO.read(recordingImageInputStream);
 			
 		} catch (IOException e1) {
 
@@ -280,7 +292,10 @@ public class MainWindow extends JFrame {
 		
 		ImageIcon motionDetectedImageIcon = new ImageIcon(motionDetectedImage);
 		motionDetectedIcon.setIcon(motionDetectedImageIcon);
-		
+
+		ImageIcon recordingImageIcon = new ImageIcon(recordingImage);
+		recordingIcon.setIcon(recordingImageIcon);
+
 		motionDetectionDelay.setText(motionDetectionDelaySlider.getValue() + " ms");
 				
 		btnExit.addActionListener(new ExitApplicationActionListener());
@@ -400,6 +415,12 @@ public class MainWindow extends JFrame {
 			recorder.setImageSavePath(Paths.get("d:/javavision"));
 			
 			motionDetector.addEventHandler(recorder);
+			
+			VideoRecorder videoRecorder = new VideoRecorder(recordingIcon);
+			videoRecorder.setRecordingDirectory(Paths.get("d:/javavision"));
+			motionDetector.addEventHandler(videoRecorder);
+			camera.addConsumer(videoRecorder);
+			
 		}
 	}
 }

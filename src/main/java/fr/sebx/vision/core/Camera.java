@@ -102,9 +102,12 @@ public class Camera extends SwingWorker<Void, CapturedImage> {
 				continue;
 			}
 			
-			CapturedImage capturedImage = new CapturedImage(capturedFrame, image);
+			CapturedImage capturedImage = new CapturedImage(capturedFrame.clone(), image);
 
 			publish(capturedImage);	
+			
+			capturedFrame.close();
+			System.gc();
 		}
         
         try {
@@ -134,7 +137,10 @@ public class Camera extends SwingWorker<Void, CapturedImage> {
 		CapturedImage frame = chunks.get(chunks.size()-1);
 		
 //		propagate the frame across consumers		
-		consumers.stream().filter(consumer -> !consumer.shouldBeDisposed()).forEach(consumer -> consumer.newImage(frame));		
+		consumers.stream().filter(consumer -> !consumer.shouldBeDisposed()).forEach(consumer -> consumer.newImage(frame));
+		
+		frame.getFrame().close();
+		System.gc();
 	}
 	
 	public boolean addConsumer(FrameConsumer e) { return consumers.add(e); }

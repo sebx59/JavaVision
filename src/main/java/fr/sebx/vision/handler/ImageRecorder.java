@@ -30,7 +30,7 @@ public class ImageRecorder implements MotionDetectedEventHandler {
 	@Override
 	public void handleEvent(MotionDetectedEvent event) {
 				
-		String filename = dateFormatter.format(new Date()) + ".jpg";
+		String filename = dateFormatter.format(new Date(event.getFrame().getTimestamp())) + ".jpg";
 		Path imagePath = imageSavePath.resolve(filename);
 		
 		try {

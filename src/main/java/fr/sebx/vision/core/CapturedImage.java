@@ -16,4 +16,7 @@ public class CapturedImage {
 	
 	@NonNull @Getter
 	private BufferedImage image;
+	
+	@Getter
+	private final long timestamp = System.currentTimeMillis();
 }

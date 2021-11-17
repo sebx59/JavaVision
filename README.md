@@ -1,2 +1,3 @@
 # JavaVision
- A simple java motion detection software
+
+ A simple java motion detection software for personal use.
